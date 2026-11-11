@@ -64,6 +64,7 @@ public:
 
 signals:
     void activeSessionExpired(const QString& msg);
+    void newNotificationsReceived(const QString& did, int count);
     void totalUnreadNotificationCountChanged(int count);
     void activeUserUnreadNotificationCountChanged();
     void nonActiveUsersChanged();
@@ -84,6 +85,8 @@ private:
 
         int mUnreadNotificationCount = 0;
         int mUnreadExtraCount = 0;
+        int mLastPolledUnreadNotificationCount = 0;
+        bool mHasPolledUnreadNotificationCount = false;
         QTimer mRefreshNotificationInitialDelayTimer;
         QTimer mRefreshNotificationTimer;
         NonActiveUser::Ptr mNonActiveUser;

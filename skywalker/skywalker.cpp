@@ -20,6 +20,8 @@
 #include "jni_callback.h"
 #include "list_cache.h"
 #include "network_holder.h"
+#include "notification_backend.h"
+#include "notification_content.h"
 #include "oauth_controller.h"
 #include "offline_message_checker.h"
 #include "ozone_report_list_model.h"
@@ -38,6 +40,8 @@
 #include <atproto/lib/at_uri.h>
 #include <QGuiApplication>
 #include <QLoggingCategory>
+#include <QWindow>
+#include <algorithm>
 
 #ifdef Q_OS_ANDROID
 #include <QJniObject>
@@ -107,6 +111,25 @@ Skywalker::Skywalker(QObject* parent) :
     connect(&mSessionManager, &SessionManager::totalUnreadNotificationCountChanged, this,
         [this](int unread){ setUnreadNotificationCount(unread); });
 
+    mNotificationBackend = createNotificationBackend(this);
+
+    if (mNotificationBackend->supportsNotifications())
+    {
+        connect(&mSessionManager, &SessionManager::newNotificationsReceived, this,
+            [this](const QString& did, int count){ fetchNewNotifications(did, count); });
+        connect(mNotificationBackend, &NotificationBackend::activated, this, [this]{
+            for (auto* window : QGuiApplication::topLevelWindows())
+            {
+                window->showNormal();
+                window->raise();
+                window->requestActivate();
+                break;
+            }
+
+            emit showNotifications();
+        });
+    }
+
     connect(&mUserSettings, &UserSettings::serviceAppViewChanged, this, &Skywalker::updateServiceAppView);
     connect(&mUserSettings, &UserSettings::serviceChatChanged, this, &Skywalker::updateServiceChat);
     connect(&mUserSettings, &UserSettings::serviceVideoHostChanged, this, &Skywalker::updateServiceVideoHost);
@@ -174,6 +197,55 @@ Skywalker::Skywalker(QObject* parent) :
     }
 
     qDebug() << getUserAgentString();
+}
+
+void Skywalker::fetchNewNotifications(const QString& did, int count)
+{
+    const auto bsky = mSessionManager.getBskyClientFor(did);
+
+    if (!bsky || count <= 0)
+        return;
+
+    constexpr int MAX_NOTIFICATION_PAGE_SIZE = 100;
+    const int limit = std::min(count, MAX_NOTIFICATION_PAGE_SIZE);
+
+    bsky->listNotifications(limit, {}, {}, {},
+        [this, bsky, did](auto output){
+            if (!output)
+            {
+                qWarning() << "Cannot show desktop notifications: empty notification response";
+                return;
+            }
+
+            auto* notificationModel = new NotificationListModel(mContentFilter, mMutedWords, nullptr, did, this);
+            notificationModel->addNotifications(std::move(output), bsky, true, [this, notificationModel]{
+                const auto& notifications = notificationModel->getNotifications();
+                const auto& reasonPostCache = notificationModel->getReasonPostCache();
+
+                for (const auto& notification : notifications)
+                {
+                    const auto body = getNotificationBody(notification, reasonPostCache);
+
+                    if (!body)
+                        continue;
+
+                    const auto author = notification.getAuthor();
+                    QString title = author.getName();
+
+                    if (title.isEmpty())
+                        title = author.getHandleOrDid();
+
+                    mNotificationBackend->notify(title, *body);
+                }
+
+                notificationModel->deleteLater();
+            });
+        },
+        [did](const QString& error, const QString& msg){
+            qWarning() << "Failed to fetch notification details for desktop notifications:"
+                       << error << "-" << msg << "account:" << did;
+        },
+        false);
 }
 
 Skywalker::Skywalker(const QString& did, ATProto::Client::SharedPtr bsky, QObject* parent) :

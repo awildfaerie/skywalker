@@ -10,6 +10,7 @@ class NotificationBackend : public QObject
     Q_OBJECT
 public:
     using QObject::QObject;
+    virtual bool supportsNotifications() const = 0;
     virtual void notify(const QString& title, const QString& body) = 0;
 
 signals:

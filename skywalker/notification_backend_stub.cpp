@@ -9,6 +9,11 @@ class NullNotificationBackend final : public NotificationBackend
 public:
     using NotificationBackend::NotificationBackend;
 
+    bool supportsNotifications() const override
+    {
+        return false;
+    }
+
     void notify(const QString& title, const QString& body) override
     {
         Q_UNUSED(title);

@@ -47,6 +47,7 @@ class OzoneSubjectListModel;
 class PostThreadModel;
 class SearchPostFeedModel;
 class ShareUtils;
+class NotificationBackend;
 class VerificationUtils;
 
 class Skywalker : public IFeedPager
@@ -448,6 +449,7 @@ private:
     void updateGlobalFeedOrder();
     void updateContentFilterStats();
     void handleShowLink(const QString& url);
+    void fetchNewNotifications(const QString& did, int count);
     ATProto::PostMaster* postMaster();
     ForYou* getForYou();
     Constellation* getConstellation();
@@ -478,6 +480,7 @@ private:
     std::unique_ptr<EditUserPreferences> mEditUserPreferences;
     UserSettings mUserSettings;
     SessionManager mSessionManager;
+    NotificationBackend* mNotificationBackend = nullptr;
     ListStore mContentFilterPolicies;
     ContentFilter mContentFilter;
     ContentFilterShowAll mContentFilterShowAll;

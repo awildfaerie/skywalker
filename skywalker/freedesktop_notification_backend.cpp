@@ -56,6 +56,11 @@ public:
         }
     }
 
+    bool supportsNotifications() const override
+    {
+        return true;
+    }
+
     void notify(const QString& title, const QString& body) override
     {
         const auto sessionBus = QDBusConnection::sessionBus();

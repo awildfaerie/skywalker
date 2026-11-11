@@ -98,8 +98,6 @@ private:
     void createNotifications();
     void createNotification(const Notification& notification);
     void createNotification(const QString channelId, const BasicProfile& author, const QString& msg, const QDateTime& when, IconType iconType);
-    QString getNotificationText(const Post& post) const;
-    QString getNotificationText(const PostRecord& postRecord) const;
 
     static bool sNotificationPermissionGranted;
     static UserSettings* sUserSettings;

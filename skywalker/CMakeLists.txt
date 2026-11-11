@@ -314,6 +314,9 @@ qt_add_qml_module(libskywalker
         SOURCES jni_utils.cpp
         SOURCES offline_message_checker.h
         SOURCES offline_message_checker.cpp
+        SOURCES notification_backend.h
+        SOURCES notification_content.h
+        SOURCES notification_content.cpp
         QML_FILES qml/FontComboBox.qml
         QML_FILES qml/AddGifButton.qml
         QML_FILES qml/ImageScroller.qml
@@ -831,6 +834,12 @@ qt_add_qml_module(libskywalker
         QML_FILES qml/ModerationPolicySummaryList.qml
         SOURCES ozone_subject_view_interface.cpp
 )
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_sources(libskywalker PRIVATE freedesktop_notification_backend.cpp)
+else()
+    target_sources(libskywalker PRIVATE notification_backend_stub.cpp)
+endif()
 
 target_link_libraries(libskywalker
     PRIVATE libatproto
